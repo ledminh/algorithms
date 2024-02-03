@@ -1,197 +1,127 @@
-// Implementation of a HashSet data structure
-class HashSet<T extends string | number | symbol> {
-  private hash: Record<T, boolean>; // Hash table to store the elements
-  private size: number; // Number of elements in the set
+class SmallestInfiniteSet {
+  private currentInteger: number;
+  private addedIntegers: MinHeapPQ;
+  private isPresent: HashSet;
 
   constructor() {
-    this.hash = {} as Record<T, boolean>; // Initialize an empty hash table
-    this.size = 0; // Initialize the size to 0
+    this.currentInteger = 1;
+    this.addedIntegers = new MinHeapPQ();
+    this.isPresent = new HashSet();
   }
 
-  // Add an element to the set if it doesn't already exist
-  add(value: T): void {
-    if (!this.contains(value)) {
-      this.hash[value] = true; // Add the element to the hash table
-      this.size++; // Increment the size
+  popSmallest(): number {
+    if (!this.addedIntegers.isEmpty()) {
+      const minVal = this.addedIntegers.popMin();
+      this.isPresent.remove(minVal);
+      return minVal;
     }
+
+    const curVal = this.currentInteger;
+    this.currentInteger++;
+
+    return curVal;
   }
 
-  // Remove an element from the set if it exists
-  remove(value: T): void {
-    if (this.contains(value)) {
-      delete this.hash[value]; // Remove the element from the hash table
-      this.size--; // Decrement the size
-    }
-  }
+  addBack(num: number): void {
+    if (this.currentInteger <= num || this.isPresent.contains(num)) return;
 
-  // Check if an element exists in the set
-  contains(value: T): boolean {
-    return Object.prototype.hasOwnProperty.call(this.hash, value);
-  }
-
-  // Get the number of elements in the set
-  getSize(): number {
-    return this.size;
-  }
-
-  // Check if the set is empty
-  isEmpty(): boolean {
-    return this.size === 0;
-  }
-
-  // Clear the set by resetting the hash table and size
-  clear(): void {
-    this.hash = {} as Record<T, boolean>;
-    this.size = 0;
+    this.addedIntegers.add(num);
+    this.isPresent.add(num);
   }
 }
 
-// Implementation of a Min Heap Priority Queue data structure
-class MinHeapPQ<T> {
-  private heap: T[]; // Array to store the elements of the heap
+class HashSet {
+  private hash: Record<number, boolean>;
 
   constructor() {
-    this.heap = []; // Initialize an empty heap
+    this.hash = {};
   }
 
-  // Get the index of the parent node of a given index
-  private getParentIndex(index: number): number {
-    return Math.floor((index - 1) / 2);
+  public add(val: number) {
+    this.hash[val] = true;
   }
 
-  // Get the index of the left child node of a given index
-  private getLeftChildIndex(index: number): number {
-    return 2 * index + 1;
+  public remove(val: number) {
+    delete this.hash[val];
   }
 
-  // Get the index of the right child node of a given index
-  private getRightChildIndex(index: number): number {
-    return 2 * index + 2;
+  public contains(val: number) {
+    return this.hash[val];
+  }
+}
+
+class MinHeapPQ {
+  private heap: number[];
+
+  constructor() {
+    this.heap = [];
   }
 
-  // Swap two elements in the heap
-  private swap(index1: number, index2: number): void {
-    [this.heap[index1], this.heap[index2]] = [
-      this.heap[index2],
-      this.heap[index1],
-    ];
+  public isEmpty(): boolean {
+    return this.heap.length === 0;
   }
 
-  // Get the minimum element in the heap without removing it
-  peek(): T | undefined {
-    if (this.heap.length === 0) {
-      throw new Error("Heap is empty");
-    }
-    return this.heap[0];
-  }
+  public popMin(): number {
+    if (this.heap.length === 0) throw new Error("Heap is empty");
 
-  // Insert an element into the heap
-  insert(value: T): void {
-    this.heap.push(value); // Add the element to the end of the heap
-    let currentIndex = this.heap.length - 1;
-    let parentIndex = this.getParentIndex(currentIndex);
+    const min = this.heap[0];
+    const last = this.heap.pop();
+
+    if (this.heap.length == 0 || last === undefined) return min;
+
+    this.heap[0] = last;
+
+    let curIndex = 0;
+    let leftChildIndex = this.getLeftChildIndex(curIndex);
+    let rightChildIndex = this.getRightChildIndex(curIndex);
+
     while (
-      currentIndex > 0 &&
-      this.heap[currentIndex] < this.heap[parentIndex]
+      (leftChildIndex < this.heap.length &&
+        this.heap[leftChildIndex] < this.heap[curIndex]) ||
+      (rightChildIndex < this.heap.length &&
+        this.heap[rightChildIndex] < this.heap[curIndex])
     ) {
-      this.swap(currentIndex, parentIndex); // Swap the element with its parent if it is smaller
-      currentIndex = parentIndex;
-      parentIndex = this.getParentIndex(currentIndex);
-    }
-  }
+      const smallerChildIndex =
+        rightChildIndex >= this.heap.length ||
+        this.heap[leftChildIndex] < this.heap[rightChildIndex]
+          ? leftChildIndex
+          : rightChildIndex;
 
-  // Remove and return the minimum element from the heap
-  popMin(): T | undefined {
-    if (this.heap.length === 0) {
-      throw new Error("Heap is empty");
-    }
-    const min = this.heap[0]; // Store the minimum element
-    const last = this.heap.pop(); // Remove the last element from the heap
-    if (this.heap.length > 0 && last !== undefined) {
-      this.heap[0] = last; // Replace the root with the last element
-      let currentIndex = 0;
-      let leftChildIndex = this.getLeftChildIndex(currentIndex);
-      let rightChildIndex = this.getRightChildIndex(currentIndex);
-      while (
-        (leftChildIndex < this.heap.length &&
-          this.heap[leftChildIndex] < this.heap[currentIndex]) ||
-        (rightChildIndex < this.heap.length &&
-          this.heap[rightChildIndex] < this.heap[currentIndex])
-      ) {
-        const smallerChildIndex =
-          rightChildIndex >= this.heap.length ||
-          this.heap[leftChildIndex] < this.heap[rightChildIndex]
-            ? leftChildIndex
-            : rightChildIndex;
+      this.swap(curIndex, smallerChildIndex);
 
-        this.swap(currentIndex, smallerChildIndex); // Swap the element with its smaller child
-        currentIndex = smallerChildIndex;
-        leftChildIndex = this.getLeftChildIndex(currentIndex);
-        rightChildIndex = this.getRightChildIndex(currentIndex);
-      }
+      curIndex = smallerChildIndex;
+      leftChildIndex = this.getLeftChildIndex(curIndex);
+      rightChildIndex = this.getRightChildIndex(curIndex);
     }
+
     return min;
   }
 
-  // Get the number of elements in the heap
-  size(): number {
-    return this.heap.length;
+  public add(num: number) {
+    this.heap.push(num);
+
+    let curIndex = this.heap.length - 1;
+    let parentIndex = this.getParentIndex(curIndex);
+
+    while (curIndex > 0 && this.heap[curIndex] < this.heap[parentIndex]) {
+      this.swap(curIndex, parentIndex);
+      curIndex = parentIndex;
+      parentIndex = this.getParentIndex(curIndex);
+    }
   }
 
-  // Check if the heap is empty
-  isEmpty(): boolean {
-    return this.heap.length === 0;
+  private getLeftChildIndex(i: number): number {
+    return 2 * i + 1;
+  }
+  private getRightChildIndex(i: number): number {
+    return 2 * i + 2;
+  }
+
+  private swap(i1: number, i2: number) {
+    [this.heap[i1], this.heap[i2]] = [this.heap[i2], this.heap[i1]];
+  }
+
+  private getParentIndex(i: number): number {
+    return Math.floor((i - 1) / 2);
   }
 }
-
-// Implementation of a Smallest Infinite Set using HashSet and MinHeapPQ
-class SmallestInfiniteSet {
-  private isPresent: HashSet<number>; // HashSet to store the added integers
-  private addedIntegers: MinHeapPQ<number>; // MinHeapPQ to store the added integers in sorted order
-  private currentInteger: number; // Current integer to be added to the set
-
-  constructor() {
-    this.isPresent = new HashSet<number>(); // Initialize an empty HashSet
-    this.addedIntegers = new MinHeapPQ<number>(); // Initialize an empty MinHeapPQ
-    this.currentInteger = 1; // Start with the smallest integer
-  }
-
-  // Remove and return the smallest integer from the set
-  popSmallest(): number {
-    let answer: number;
-    if (!this.addedIntegers.isEmpty()) {
-      const minValue = this.addedIntegers.popMin(); // Get the smallest integer from the MinHeapPQ
-      if (minValue !== undefined) {
-        answer = minValue;
-        this.isPresent.remove(answer); // Remove the integer from the HashSet
-      } else {
-        throw new Error("Unexpected undefined value popped from MinHeap");
-      }
-    } else {
-      answer = this.currentInteger; // If no integers are added, return the current integer
-      this.currentInteger += 1; // Increment the current integer for the next pop
-    }
-    return answer;
-  }
-
-  // Add an integer to the set if it is smaller than the current integer and not already present
-  addBack(num: number): void {
-    if (this.currentInteger <= num || this.isPresent.contains(num)) {
-      return; // Ignore if the integer is not smaller or already present
-    }
-    this.addedIntegers.insert(num); // Add the integer to the MinHeapPQ
-    this.isPresent.add(num); // Add the integer to the HashSet
-  }
-}
-
-// The overall process of the code is to implement a Smallest Infinite Set,
-// which maintains a set of integers in sorted order.
-// The set supports adding integers and removing the smallest integer.
-// The implementation uses a HashSet to keep track of the added integers,
-// and a MinHeapPQ to store the added integers in sorted order.
-// The current smallest integer is also maintained separately.
-// When adding an integer, it is checked if it is smaller than the current integer
-// and not already present in the set. If so, it is added to the MinHeapPQ and HashSet.
-// When removing the smallest integer, it is popped from the MinHeapPQ,
-// and if it is present in the HashSet, it is removed.
-// If no integers are added, the current integer is returned.
